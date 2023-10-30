@@ -15,7 +15,7 @@ from PIL import Image, ImageOps
 # You can load .h5 model or any model below this line
 
 with open('model.pickle', 'rb') as handle:
-    model = pickle.load(handle)
+    model, labels = pickle.load(handle)
 
 
 # If you use h5 type uncomment line below
@@ -68,8 +68,8 @@ def predict_image(uploaded_file: UploadFile, response: Response):
         print("Features shape:", features.shape)
         prediction = model.predict(np.array([features]))
         print(prediction)
-
-        return "Endpoint not implemented"
+        print(labels)
+        return f"Image is category {labels[prediction[0]]}"
     except Exception as e:
         traceback.print_exc()
         response.status_code = 500
