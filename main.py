@@ -9,6 +9,7 @@ import pickle
 from sklearn import datasets, svm, metrics
 from skimage.feature import local_binary_pattern
 from PIL import Image, ImageOps
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize Model
 # If you already put yout model in the same folder as this main.py
