@@ -33,7 +33,7 @@ def index():
 
 
 @app.post("/predict_image")
-def predict_image(uploaded_file: UploadFile, response: Response):
+def predict_image(uploaded_file: UploadFile, response: Response, mode: str = 'lbp'):
     try:
         if uploaded_file.content_type not in ["image/jpeg", "image/png"]:
             response.status_code = 400
@@ -51,7 +51,7 @@ def predict_image(uploaded_file: UploadFile, response: Response):
         # Convert the image to a NumPy array
         img_array = np.array(img)
 
-        prediction = predict(np.array(img), mode='lbp')
+        prediction = predict(np.array(img), mode=mode)
         response = f'Prediction : {le.inverse_transform(prediction)[0]}'
         return response
     except Exception as e:
