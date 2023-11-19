@@ -1,5 +1,6 @@
 import io
 import os
+import pickle
 import uvicorn
 import traceback
 import numpy as np
@@ -7,13 +8,11 @@ from urllib.request import Request
 from fastapi import FastAPI, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
-from sklearn.preprocessing import LabelEncoder
 
 from predict import predict
 
-
-le = LabelEncoder()
-
+with open(f'models/label_encoder.pkl', 'rb') as file:
+    le = pickle.load(file)
 
 app = FastAPI()
 
