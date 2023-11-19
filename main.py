@@ -1,3 +1,4 @@
+import io
 import os
 import uvicorn
 import traceback
@@ -5,48 +6,16 @@ import numpy as np
 from urllib.request import Request
 from fastapi import FastAPI, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-import tensorflow as tf
-import torch
+from PIL import Image
+from sklearn.preprocessing import LabelEncoder
 
-from model.model import GeneratorUNet
-from model.utils import ConfigParser
-
-def get_MRI_GAN(pre_trained=True):
-    generator = GeneratorUNet()
-    if pre_trained:
-        # checkpoint_path = ConfigParser.getInstance().get_mri_gan_weight_path()
-        # print(ConfigParser.getInstance())
-        checkpoint_path = "./DeepFakeDetectModel.chkpt"
-        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        print(checkpoint.keys())
-        generator.load_state_dict(checkpoint['model_state_dict'])
-
-    return generator
+from predict import predict
 
 
-load_options = tf.saved_model.LoadOptions(
-    experimental_io_device='/job:localhost')
-
-model = tf.saved_model.load("./model", options=load_options)
-
-checkpoint_path = "./DeepFakeDetectModel.chkpt"
-device = torch.device('cpu')
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# model_chkpt = YourModelClass().to(device)  # Replace YourModelClass with your actual model class
-# model_chkpt.load_state_dict(torch.load(checkpoint_path, map_location=device))
-
-model_chkpt = get_MRI_GAN()
-model_chkpt = model_chkpt.to(device)
-model_chkpt.eval()
+le = LabelEncoder()
 
 
-# If you use h5 type uncomment line below
-# model = tf.keras.models.load_model('./my_model.h5')
-# If you use saved model type uncomment line below
-# model = tf.saved_model.load("./my_model_folder")
-
-
-app = FastAPI()     
+app = FastAPI()
 
 origins = ["*"]
 
@@ -63,6 +32,7 @@ app.add_middleware(
 def index():
     return "Hello world from ML endpoint!"
 
+
 @app.post("/predict_image")
 def predict_image(uploaded_file: UploadFile, response: Response):
     try:
@@ -70,54 +40,21 @@ def predict_image(uploaded_file: UploadFile, response: Response):
             response.status_code = 400
             return "File is Not an Image"
 
-        img = uploaded_file.file.read()
-        img = tf.io.decode_image(img, channels=3)
+        # Read the uploaded image file
+        img = Image.open(io.BytesIO(uploaded_file.file.read()))
 
-        image = tf.image.resize(img, [128, 128])
-        image = tf.expand_dims(image, axis=0)
+        # Convert the image to grayscale if needed
+        img = img.convert("L")  # Convert to grayscale
 
-        # input_data = image/255.0
-      
-        result = model(image)
-        tensor = tf.constant(result)
-        print(result)
+        # Resize or preprocess the image if required
+        # img = img.resize((new_width, new_height))  # Resize image
 
-        results_array = tensor.numpy()[0].tolist()
-        print(results_array)
-        return f"Image is category"
-    except Exception as e:
-        traceback.print_exc()
-        response.status_code = 500
-        return f"Internal Server Error: {e}"
+        # Convert the image to a NumPy array
+        img_array = np.array(img)
 
-@app.post("/predict_image_chkpt")
-def predict_image_chkpt(uploaded_file: UploadFile, response: Response):
-    try:
-        if uploaded_file.content_type not in ["image/jpeg", "image/png"]:
-            response.status_code = 400
-            return "File is Not an Image"
-
-        img = uploaded_file.file.read()
-        img = tf.io.decode_image(img, channels=3)
-
-        image = tf.image.resize(img, [128, 128])
-        image = tf.expand_dims(image, axis=0)
-
-        with torch.no_grad():
-            output = model(image)
-
-        # result = process_output(output)
-
-        # input_data = image/255.0
-      
-        # result = model(image)
-        # tensor = tf.constant(result)
-        # print(result)
-        print(output)
-
-        # results_array = tensor.numpy()[0].tolist()
-        # print(results_array)
-        return f"Image is category"
+        prediction = predict(np.array(img), mode='lbp')
+        response = f'Prediction : {le.inverse_transform(prediction)[0]}'
+        return response
     except Exception as e:
         traceback.print_exc()
         response.status_code = 500
