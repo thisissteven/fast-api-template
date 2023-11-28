@@ -52,7 +52,7 @@ def predict_image(uploaded_file: UploadFile, response: Response, mode: str = 'lb
         img_array = np.array(img)
 
         prediction = predict(np.array(img), mode=mode)
-        response = f'Prediction : {le.inverse_transform(prediction)[0]}'
+        response = f'{le.inverse_transform(prediction)[0]}'
         return response
     except Exception as e:
         traceback.print_exc()

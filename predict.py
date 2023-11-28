@@ -61,14 +61,19 @@ def predict(arr, mode='combined'):
 
         return model.predict(np.concatenate((lbp, glcm), axis=1))
     elif mode == 'lbp':
-        with open(f'{env_dir}/lbp_only.pkl', 'rb') as file:
+        lbp_params = [
+        {'r': 1, 'n': 32},
+        ]
+        lbp = np.array([compute_lbp(arr, **param) for param in lbp_params])
+        lbp = lbp.reshape(1, sum(param['r'] * param['n'] for param in lbp_params))
+        with open(f'{env_dir}/model.pkl', 'rb') as file:
             model = pickle.load(file)
 
         return model.predict(lbp)
 
     elif mode == 'glcm':
         # Replace with the actual directory path
-        with open(f'{env_dir}/lbp_only.pkl', 'rb') as file:
+        with open(f'{env_dir}/glcm_only.pkl', 'rb') as file:
             model = pickle.load(file)
 
         return model.predict(glcm)
